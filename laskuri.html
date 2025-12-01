@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raakaruokalaskuri</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="layout">
+        <div class="left">
+            <h1>Raakaruokalaskuri</h1>
+
+            <form id="laskuri">
+                <fieldset>
+                    <legend>Valitse ravinto</legend>
+                    <div class="ravinto">
+                        <label>
+                            <input type="radio" name="ravintotyyppi" value="taysravinto" checked>
+                            Täysravinto
+                        </label>
+                        <label>
+                            <input type="radio" name="ravintotyyppi" value="taydennysravinto">
+                            Täydennysravinto
+                        </label>
+                    </div>
+                </fieldset>
+
+                <p id="taydennysInfo"></p>
+
+                <fieldset>
+                    <legend>Valitse eläin</legend>
+                    <div class="elaimet">
+                        <label>
+                            <input type="radio" name="elaintyyppi" value="koira" checked>
+                            <img src="kuva_koira1.png" alt="Koira" class="elain-kuva">
+                            Koira
+                        </label>
+
+                        <label id="kissa-label">
+                            <input type="radio" name="elaintyyppi" value="kissa">
+                            <img src="kuva_kissa1.png" alt="Kissa" class="elain-kuva">
+                            Kissa
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Valitse ruoka</legend>
+                    <div class="ruoka">
+                        <label id="penturuoka-label">
+                            <input type="radio" name="ruokatyyppi" value="penturuoka" checked>
+                            <img src="pentu.svg" alt="Pentu" class="ruoka-kuva">
+                            Penturuoka
+                        </label>
+                        <label>
+                            <input type="radio" name="ruokatyyppi" value="siipikarja">
+                            <img src="kana.svg" alt="Kana" class="ruoka-kuva">
+                            Aikuinen
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Valitse aktiivisuustaso</legend>
+                    <div class="aktiivisuus">
+                        <label>
+                            <input type="radio" name="aktiivisuus" value="rauhallinen" checked>
+                            Rauhallinen
+                        </label>
+
+                        <label>
+                            <input type="radio" name="aktiivisuus" value="normaali">
+                            Normaali
+                        </label>
+
+                        <label>
+                            <input type="radio" name="aktiivisuus" value="aktiivinen">
+                            Aktiivinen
+                        </label>
+                    </div>
+                </fieldset>
+
+                <label for="paino">Syötä paino (kg):</label>
+                <input type="number" id="paino" placeholder="Esim. 10" min="0" step="0.1">
+
+                <button type="button" id="laske">Laske</button>
+            </form>
+        </div>
+
+        <div class="right">
+            <h2>Tulokset</h2>
+            <div id="tulos"></div>
+        </div>
+    </div>
+
+    <script>
+        const painoInput = document.getElementById("paino");
+        const laskeButton = document.getElementById("laske");
+        const tulosDiv = document.getElementById("tulos");
+        const taydennysInfo = document.getElementById("taydennysInfo");
+
+        const kissaLabel = document.getElementById("kissa-label");
+        const penturuokaLabel = document.getElementById("penturuoka-label");
+        const ravintoRadios = document.querySelectorAll('input[name="ravintotyyppi"]');
+
+        const kissaInput = kissaLabel.querySelector('input[type="radio"]');
+        const penturuokaInput = penturuokaLabel.querySelector('input[type="radio"]');
+
+        tulosDiv.textContent = "Kirjoita paino numeroin.";
+
+        ravintoRadios.forEach(radio => {
+            radio.addEventListener("change", handleRavintoChange);
+        });
+
+        function handleRavintoChange() {
+            const ravintotyyppi = document.querySelector('input[name="ravintotyyppi"]:checked').value;
+
+            if (ravintotyyppi === "taydennysravinto") {
+                // valitaan automaattisesti koira + aikuinen
+                document.querySelector('input[name="elaintyyppi"][value="koira"]').checked = true;
+                document.querySelector('input[name="ruokatyyppi"][value="siipikarja"]').checked = true;
+
+                // kissa- ja penturuokavaihtoehtojen poistaminen käytöstä
+                kissaInput.disabled = true;
+                penturuokaInput.disabled = true;
+
+                // himmennetään em. radiobuttonit ja kuvat
+                kissaLabel.classList.add("disabled-option");
+                penturuokaLabel.classList.add("disabled-option");
+
+                taydennysInfo.textContent =
+                    "Huom! Vitamiinit lasketaan pennullakin aikuispainon mukaan. Laske lihamäärä kuitenkin täysravintolaskurilla.";
+            } else {
+                // täydennysravintotilaan vaihdettaessa buttonit normaaleiksi:
+                kissaInput.disabled = false;
+                penturuokaInput.disabled = false;
+
+                kissaLabel.classList.remove("disabled-option");
+                penturuokaLabel.classList.remove("disabled-option");
+
+                taydennysInfo.textContent = "";
+            }
+        }
+
+        laskeButton.addEventListener("click", function () {
+            const paino = parseFloat(painoInput.value);
+            const elaintyyppi = document.querySelector('input[name="elaintyyppi"]:checked').value;
+            const ruokatyyppi = document.querySelector('input[name="ruokatyyppi"]:checked').value;
+            const ravintotyyppi = document.querySelector('input[name="ravintotyyppi"]:checked').value;
+            const aktiivisuus = document.querySelector('input[name="aktiivisuus"]:checked').value;
+
+            if (isNaN(paino) || paino <= 0) {
+                tulosDiv.textContent = "Kirjoita paino numeroin.";
+                return;
+            }
+
+            let kerroin = 0;
+
+            // KOIRA
+            if (elaintyyppi === "koira") {
+                if (ruokatyyppi === "penturuoka") {
+                    if (aktiivisuus === "rauhallinen") {
+                        kerroin = 0.0225;
+                    } else if (aktiivisuus === "normaali") {
+                        kerroin = 0.025;
+                    } else if (aktiivisuus === "aktiivinen") {
+                        kerroin = 0.03;
+                    }
+                } else { // aikuinen koira
+                    if (aktiivisuus === "rauhallinen") {
+                        kerroin = 0.015;
+                    } else if (aktiivisuus === "normaali") {
+                        kerroin = 0.02;
+                    } else if (aktiivisuus === "aktiivinen") {
+                        kerroin = 0.035;
+                    }
+                }
+
+                // KISSA
+            } else if (elaintyyppi === "kissa") {
+
+                if (ruokatyyppi === "penturuoka") {
+                    // KISSANPENTU
+                    if (paino <= 1) {
+                        if (aktiivisuus === "rauhallinen") kerroin = 0.08;
+                        else if (aktiivisuus === "normaali") kerroin = 0.115;
+                        else if (aktiivisuus === "aktiivinen") kerroin = 0.15;
+
+                    } else if (paino <= 2) {
+                        if (aktiivisuus === "rauhallinen") kerroin = 0.05;
+                        else if (aktiivisuus === "normaali") kerroin = 0.085;
+                        else if (aktiivisuus === "aktiivinen") kerroin = 0.12;
+
+                    } else {
+                        if (aktiivisuus === "rauhallinen") kerroin = 0.05;
+                        else if (aktiivisuus === "normaali") kerroin = 0.070;
+                        else if (aktiivisuus === "aktiivinen") kerroin = 0.085;
+                    }
+
+                } else {
+                    // AIKUINEN KISSA
+                    if (aktiivisuus === "rauhallinen") {
+                        kerroin = 0.017;
+                    } else if (aktiivisuus === "normaali") {
+                        kerroin = 0.025;
+                    } else if (aktiivisuus === "aktiivinen") {
+                        kerroin = 0.035;
+                    }
+                }
+            }
+
+            // Turvacheck
+            if (kerroin === 0) {
+                tulosDiv.textContent = "Tarkista valinnat (eläin, ruoka ja aktiivisuus).";
+                return;
+            }
+
+            const elainNimi = elaintyyppi.charAt(0).toUpperCase() + elaintyyppi.slice(1);
+            const ruokaMaaraPaiva = paino * 1000 * kerroin; // g/päivä
+
+            // TÄYDENNYSRAVINTO KOIRALLE
+            if (ravintotyyppi === "taydennysravinto" && elaintyyppi === "koira") {
+                const lihaViikko = ruokaMaaraPaiva * 7;          // g/vko
+                const maksaViikko = lihaViikko * 0.05;           // A-vitamiini: 5 % ruoasta / vko
+
+                // Vitamiini- ja kivennäismäärät / viikko (per kg / vko)
+                const sinkkiMgVko = paino * 2;       // 2 mg/kg/vko
+                const dVitMgVko = (paino * 0.7) / 1000; // 0,0007 mg/kg/vko
+                const kalsiumGVko = paino * 0.08;    // 0,08 g/kg/vko
+                const jodiMgVko = (paino * 15) / 1000; // 
+                const eVitMgVko = paino * 2;       // 2 mg/kg/vko
+
+                tulosDiv.innerHTML = `
+                <p><strong>Täydennysravintolaskuri (koira, aikuispaino)</strong></p>
+                <p>${elainNimi} tarvitsee noin <strong>${ruokaMaaraPaiva.toFixed(0)} g</strong> lihaa päivässä.</p>
+                <p><strong>Viikkotasolla (${paino} kg koira):</strong></p>
+                <ul>
+                    <li>Lihaa yhteensä noin <strong>${lihaViikko.toFixed(0)} g / vko</strong></li>
+                    <li>Maksa (A-vitamiinin lähteenä) noin <strong>${maksaViikko.toFixed(0)} g / vko</strong> (5 % viikon ruokamäärästä)</li>
+                    <li>Sinkki: noin <strong>${sinkkiMgVko.toFixed(1)} mg / vko</strong></li>
+                    <li>D-vitamiini: noin <strong>${dVitMgVko.toFixed(3)} mg / vko</strong></li>
+                    <li>Kalsium: noin <strong>${kalsiumGVko.toFixed(2)} g / vko</strong></li>
+                    <li>Jodi: noin <strong>${jodiMgVko.toFixed(2)} mg / vko</strong></li>
+                    <li>E-vitamiini: noin <strong>${eVitMgVko.toFixed(1)} mg / vko</strong></li>
+                </ul>
+                <p style="font-size: 12px; color: #555;">
+                    Huom! Nämä ovat suuntaa-antavia määriä. Kokonaisruokavalion tasapaino on hyvä tarkistaa ravitsemusneuvojalta. Esimerkiksi kalsiumin määrä on suurempi pennuille ja imettäville emoille, ja mikäli koira syö luullista lihaa, voi sen annostuksen laskea kalsiumin mukaan.
+                </p>
+            `;
+            } else {
+                // TÄYSRAVINTO (koira tai kissa)
+                tulosDiv.innerHTML = `
+                <p><strong>Täysravintolaskuri</strong></p>
+                <p>${elainNimi} tarvitsee noin <strong>${ruokaMaaraPaiva.toFixed(0)} g</strong> ruokaa päivässä, <br>eli noin <strong>${ruokaMaaraPaiva.toFixed(0) * 7} g</strong> viikossa.</p>
+                <p style="font-size: 12px; color: #555;">
+                    Huom! Tämä annos on suuntaa-antava. Huomioi aina lemmikin yksilölliset tarpeet,
+                    eläinlääkärin mahdolliset ohjeet sekä valitun tuotteen pakkauksessa oleva annostusohje.
+                </p>
+            `;
+            }
+        });
+    </script>
+</body>
+
+</html>
